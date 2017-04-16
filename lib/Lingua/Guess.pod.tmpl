@@ -6,9 +6,25 @@ Lingua::Guess - A statistical language guesser
 
 [% INCLUDE "synopsis.pl" %]
 
+=head1 DESCRIPTION
+
+This is a fork of an old module called Language::Guess which was
+deleted from CPAN by its author.
+
 =head1 METHODS
 
 =head2 new
+
+Make a new object. This takes a hash as argument with the following keys:
+
+=over
+
+=item modeldir
+
+The location of the training data. If this is not supplied, the
+training data supplied with the module is used.
+
+=back
 
 =head2 guess
 
@@ -16,6 +32,30 @@ returns arrayref of hashes in the form
 [ { name => NAME, score => SCORE }]
 
 =head2 simple_guess
+
+Return a one-word string containing the guessed language.
+
+=head1 DEPENDENCIES
+
+=over
+
+=item Carp
+
+L<Carp/croak> is used to report errors.
+
+=item File::Spec::Functions
+
+L<File::Spec::Functions/catfile> is used in reading the training data files.
+
+=item Unicode::Normalize
+
+L<Unicode::Normalize/NFC> is used to normalize inputs.
+
+=item Unicode::UCD
+
+L<Unicode::UCD/charinfo> is used to get information about characters
+
+=back
 
 =head1 COPYRIGHT
 	
@@ -25,6 +65,10 @@ returns arrayref of hashes in the form
 
 This software is released under version 2.0 of the GNU Public License
 
+=head1 MAINTAINER
+
+This module is maintained by Ben Bullock <bkb@cpan.org>.
+
 =head1 AUTHOR
 	
-Maciej Ceglowski E<lt>maciej@ceglowski.comE<gt>
+Maciej Ceglowski

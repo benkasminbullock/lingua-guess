@@ -3,6 +3,7 @@ use warnings;
 use strict;
 use Test::More;
 use Lingua::Guess;
+use utf8;
 
 my $guess = Lingua::Guess->new();
 ok( $guess, "Created langauge guesser object" );

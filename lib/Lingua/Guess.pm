@@ -3,13 +3,10 @@ package Lingua::Guess;
 use strict;
 use warnings;
 require 5.008;
-use Data::Dumper qw/Dumper/;
-use Unicode::UCD 'charinfo';
-use utf8;
-use Encode qw/is_utf8 _utf8_on/;
-use Unicode::Normalize;		# don’t trust your input!
-use File::Spec::Functions;
 use Carp;
+use File::Spec::Functions 'catfile';
+use Unicode::Normalize qw/NFC/;
+use Unicode::UCD 'charinfo';
 
 our $VERSION = '0.01';
 
@@ -55,7 +52,6 @@ sub new
 sub guess 
 {
     my ( $self,$string ) = @_;
-    _utf8_on($string);
     $self->load_models() unless defined $self->{models};
     my @runs = find_runs( $string );
     #warn "Found ", scalar @runs, " runs\n";

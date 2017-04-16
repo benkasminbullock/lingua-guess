@@ -1,6 +1,7 @@
 use ExtUtils::MakeMaker;
 my $pm = 'lib/Lingua/Guess.pm';
 my $pod = 'lib/Lingua/Guess.pod';
+my $repo = 'https://github.com/benkasminbullock/lingua-guess';
 WriteMakefile(
     'NAME' => 'Lingua::Guess',
     'VERSION_FROM' => $pm,
@@ -13,4 +14,12 @@ WriteMakefile(
 	File::Spec::Functions => '0.01',
 	Carp => '0.01',
     },
+    META_MERGE => {
+        resources => {
+            repository => $repo,
+            bugtracker => "$repo/issues",
+        },
+    },
+    MIN_PERL_VERSION => '5.008009',
+    AUTHOR => 'Ben Bullock <bkb@cpan.org>',
 );
