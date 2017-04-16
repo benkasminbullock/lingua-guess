@@ -1,13 +1,16 @@
 use ExtUtils::MakeMaker;
-# See lib/ExtUtils/MakeMaker.pm for details of how to influence
-# the contents of the Makefile that is written.
+my $pm = 'lib/Lingua/Guess.pm';
+my $pod = 'lib/Lingua/Guess.pod';
 WriteMakefile(
-    'NAME'			=> 'Language::Guess',
-    'VERSION_FROM'	=> 'Guess.pm', # finds $VERSION
-    'PREREQ_PM'		=> { Unicode::UCD => '0.01',
-						 Encode => 0.01,
-						 Unicode::Normalize, 0.01,
-						 File::Spec::Functions => 0.01,
-						 Carp => 0.01,
-						}
-)   ;
+    'NAME' => 'Lingua::Guess',
+    'VERSION_FROM' => $pm,
+    'ABSTRACT_FROM' => $pod,
+    LICENSE => 'gpl',
+    'PREREQ_PM'		=> {
+	Unicode::UCD => '0.01',
+	Encode => '0.01',
+	Unicode::Normalize => '0.01',
+	File::Spec::Functions => '0.01',
+	Carp => '0.01',
+    },
+);
