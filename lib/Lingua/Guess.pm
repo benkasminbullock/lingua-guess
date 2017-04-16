@@ -10,19 +10,18 @@ use Unicode::UCD 'charinfo';
 
 our $VERSION = '0.01';
 
-#sub init {
-
 our $MAX = 300;
 
 our @BASIC_LATIN = qw/English cebuano hausa somali pig_latin klingon indonesian
 		      hawaiian welsh latin swahili/;
+
 our @EXOTIC_LATIN = qw/Czech Polish Croatian Romanian Slovak Slovene Turkish Hungarian 
 		       Azeri Lithuanian Estonian/;
 our @ACCENTED_LATIN = (qw/Albanian Spanish French German Dutch Italian Danish 
 			  Icelandic 	Norwegian Swedish Finnish Latvian Portuguese 
 			 /, @EXOTIC_LATIN);
 
-our @ALL_LATIN = ( @BASIC_LATIN, @EXOTIC_LATIN, @ACCENTED_LATIN );
+our @ALL_LATIN = ( @BASIC_LATIN, @EXOTIC_LATIN, @ACCENTED_LATIN);
 
 our @CYRILLIC   = qw/Russian Ukrainian Belarussian Kazakh Uzbek Mongolian 
 		     Serbian Macedonian Bulgarian Kyrgyz/;
@@ -36,14 +35,18 @@ our @SINGLETONS  = qw/Armenian Hebrew Bengali Gurumkhi Greek Gujarati Oriya
 
 sub new
 {
-    my ( $class, %params ) = @_;
+    my ($class, %params) = @_;
     if (! $params{modeldir}) {
 	my $md = __FILE__;
 	$md =~ s!\.pm$!/train!;
 	$params{modeldir} = $md;
     }
-    croak "Must provide a model directory" unless exists $params{modeldir};
-    croak "Model directory '$params{modeldir}' does not exist" unless -d $params{modeldir};
+    unless (exists $params{modeldir}) {
+        croak "Must provide a model directory";
+    }
+    unless (-d $params{modeldir}) {
+        croak "Model directory '$params{modeldir}' does not exist";
+    }
     my $self = bless { %params }, $class;
     return $self;
 }
@@ -51,46 +54,46 @@ sub new
 
 sub guess 
 {
-    my ( $self,$string ) = @_;
-    $self->load_models() unless defined $self->{models};
-    my @runs = find_runs( $string );
-    #warn "Found ", scalar @runs, " runs\n";
-    #warn $runs[0][1];
+    my ($self, $string) = @_;
+    unless (defined $self->{models}) {
+        $self->load_models();
+    }
+    my @runs = find_runs($string);
     my @langs;
     my %scripts;
-    foreach my $run ( @runs ) {
+    for my $run (@runs) {
 	$scripts{$run->[1]}++;
     }
-	
-    return $self->identify( $string, %scripts );
-	
+    return $self->identify ($string, %scripts);
 }
 
 sub simple_guess 
 {
-    my ( $self, $string ) = @_;
-    my $got = $self->guess($string);
-    #warn Dumper($got);
+    my ($self, $string) = @_;
+    my $got = $self->guess ($string);
     return $got->[0]{name};
 }
 
 sub load_models 
 {
-    my ( $self ) = @_;
+    my ($self) = @_;
 
     opendir my $dh, $self->{modeldir} or die "Unable to open dir:$!";
     my %models;
-    while ( my $f = readdir $dh ) {
-	next unless $f =~ /\.train$/;
-	my ( $name ) = $f =~ m|(.*)\.|;
-	my $path = catfile( $self->{modeldir}, $f );
+    while (my $f = readdir $dh) {
+	unless ($f =~ /\.train$/) {
+	    next;
+	}
+	my ($name) = $f =~ m|(.*)\.|;
+	my $path = catfile ($self->{modeldir}, $f);
 	open my $fh, "<:encoding(utf8)", $path or die "Failed to open file: $!";
 	my %model;
-	while ( my $line = <$fh> ) {
+	while (my $line = <$fh>) {
 	    chomp $line;
-	    my ( $k, $v) = $line =~ m|(.{3})\s+(.*)|;
-	    next unless defined $k;
-	    #warn "'$k' $v\n";
+	    my ($k, $v) = $line =~ m|(.{3})\s+(.*)|;
+	    unless (defined $k) {
+	        next;
+	    }
 	    $model{$k} = $v;
 	}
 	$models{$name} = \%model;
@@ -98,10 +101,9 @@ sub load_models
     $self->{models} = \%models;
 }
 
-
 sub find_runs 
 {
-    my ( $raw ) = @_;
+    my ($raw) = @_;
     my @chars = split m//, $raw;
     my $prev = '';
     my @c;
@@ -109,213 +111,227 @@ sub find_runs
     my @run_types;
     my $current_run = -1;
 	
-    foreach my $c ( @chars ) {
+    for my $c (@chars) {
 	my $is_alph = $c =~ /[[:alpha:]]/o;
-	my $inf = get_charinfo( $c );
-	if ( $is_alph and !( $inf->{block} eq $prev) ) {
+	my $inf = get_charinfo ($c);
+	if ($is_alph and ! ($inf->{block} eq $prev)) {
 	    $prev = $inf->{block};
 	    @c = ();
 	    $current_run++;
 	    $run_types[$current_run] = $prev;
 	}
 	push @c, $c;
-	push @{ $runs[$current_run] }, $c if $current_run > -1;
+	if ($current_run > -1) {
+	    push @{ $runs[$current_run] }, $c;
+	}
     }
 	
-    my ( $newruns, $newtypes ) = reconcile_latin( \@runs, \@run_types );
-	
-	
-    my $counter =0;
+    my ($newruns, $newtypes) = reconcile_latin (\@runs, \@run_types);
+    my $counter = 0;
     my @result;
-    foreach my $r ( @$newruns ) {
+    for my $r (@$newruns) {
 	push @result, [ $r, $newtypes->[$counter]];
 	$counter++;
     }
     return @result;
 }
 
-{
-    my %cache;
-    sub get_charinfo 
-    {
-	my ( $char ) = @_;
-	return $cache{$char} if exists $cache{$char};
-	my $inf = charinfo( ord( $char ));
-	$cache{$char} = $inf;
-    }
-}
+# Cached lookups from charinfo
 
+my %cache;
+
+# Look up characters using charinfo, but with a cache to save repeated
+# lookups.
+
+sub get_charinfo 
+{
+    my ($char) = @_;
+    my $known = $cache{$char};
+    if ($known) {
+	return $known;
+    }
+    my $inf = charinfo (ord ($char));
+    $cache{$char} = $inf;
+    return $inf;
+}
 
 sub reconcile_latin 
 {
-    my ( $runs, $types ) = @_;
+    my ($runs, $types) = @_;
     my @types = @$types;
     my (@new_runs, @new_types);
     my $last_type = '';
 	
     my $upgrade;
-    $upgrade = 'Accented Latin' if has_supplemental_latin( @$types );
-    $upgrade = 'Exotic Latin'   if has_extended_latin( @$types );
-    $upgrade = 'Superfreak Latin' if has_latin_extended_additional( @$types );
-
-    return ( $runs, $types ) unless $upgrade;
+    if (has_supplemental_latin (@$types)) {
+        $upgrade = 'Accented Latin';
+    }
+    if (has_extended_latin (@$types)) {
+        $upgrade = 'Exotic Latin'  ;
+    }
+    if (has_latin_extended_additional (@$types)) {
+        $upgrade = 'Superfreak Latin';
+    }
+    unless ($upgrade) {
+        return ($runs, $types);
+    }
     my $run_count = -1;
-    foreach my $r ( @$runs ) {
+    for my $r (@$runs) {
 	my $type = shift @types;
-	$type = $upgrade if $type =~ /Latin/;
-	$run_count++ unless $type eq $last_type;
-		
+	if ($type =~ /Latin/) {
+	    $type = $upgrade;
+	}
+	unless ($type eq $last_type) {
+	    $run_count++;
+	}
 	push @{$new_runs[$run_count]}, @$r;
 	$new_types[$run_count] = $type;
 	$last_type = $type;
     }	
-    return ( \@new_runs, \@new_types );
+    return (\@new_runs, \@new_types);
 }
 
 
 sub has_extended_latin 
 {
-    my ( @types ) = @_;
+    my (@types) = @_;
     return scalar grep { /Latin Extended-A/ } @types;
 }
 
 sub has_supplemental_latin 
 {
-    my ( @types ) = @_;
+    my (@types) = @_;
     return scalar grep { /Latin-1 Supplement/ } @types;
 }
 
 sub has_latin_extended_additional 
 {
-    my ( @types ) = @_;
+    my (@types) = @_;
     return scalar grep { /Latin Extended Additional/ } @types;
 }
 
 
 sub identify 
 {
-    my ( $self, $sample, %scripts ) = @_;
+    my ($self, $sample, %scripts) = @_;
     # Check for Korean
-    if ( exists $scripts{'Hangul Syllables'} or
-	 exists $scripts{'Hangul Jamo'} or
-	 exists $scripts{'Hangul Compatibility Jamo'} or
-	 exists $scripts{'Hangul'}) {
+    if (exists $scripts{'Hangul Syllables'} ||
+	exists $scripts{'Hangul Jamo'} ||
+	exists $scripts{'Hangul Compatibility Jamo'} ||
+	exists $scripts{'Hangul'}) {
 	return [{ name =>'korean', score => 1 }];
     }
-    if ( exists $scripts{'Greek and Coptic'} ) { 
+    if (exists $scripts{'Greek and Coptic'}) { 
 		
 	return [{ name =>'greek', score => 1 }];
     }
 	
-    if ( exists $scripts{'Katakana'} or 
-	 exists $scripts{'Hiragana'} or
-	 exists $scripts{'Katakana Phonetic Extensions'}) {
+    if (exists $scripts{'Katakana'} || 
+	exists $scripts{'Hiragana'} ||
+	exists $scripts{'Katakana Phonetic Extensions'}) {
 	return [{ name =>'japanese', score => 1 }];
     }
 	
 	
-    if ( exists $scripts{'CJK Unified Ideographs'} or
-	 exists $scripts{'Bopomofo'} or
-	 exists $scripts{'Bopomofo Extended'} or
-	 exists $scripts{'KangXi Radicals'} or
-	 exists $scripts{'Arabic Presentation Forms-A'} ) {
+    if (exists $scripts{'CJK Unified Ideographs'} ||
+	exists $scripts{'Bopomofo'} ||
+	exists $scripts{'Bopomofo Extended'} ||
+	exists $scripts{'KangXi Radicals'} ||
+	 exists $scripts{'Arabic Presentation Forms-A'}) {
 	return [{ name => 'chinese', score => 1 }];		
     }
 	
-    if ( exists $scripts{'Cyrillic'} ) {
-	return $self->check( $sample, @CYRILLIC );
+    if (exists $scripts{'Cyrillic'}) {
+	return $self->check ($sample, @CYRILLIC);
     }
 	
 	
-    if ( exists $scripts{'Arabic'} or
-	 exists $scripts{'Arabic Presentation Forms-A'} or
-	 exists $scripts{'Arabic Presentation Forms-B'}
-     ) {
-	return $self->check( $sample, @ARABIC );
+    if (exists $scripts{'Arabic'} ||
+	 exists $scripts{'Arabic Presentation Forms-A'} ||
+	 exists $scripts{'Arabic Presentation Forms-B'}) {
+	return $self->check ($sample, @ARABIC);
     }
 	
-    if ( exists $scripts{'Devanagari'} ) {
-	return $self->check( $sample, @DEVANAGARI );
+    if (exists $scripts{'Devanagari'}) {
+	return $self->check ($sample, @DEVANAGARI);
     }
 	
 	
-    # Try langauges with unique scripts
-    foreach my $s ( @SINGLETONS ) {
-	return [{ name => lc($s), score => 1 }] if exists $scripts{$s};
+    # Try languages with unique scripts
+
+    for my $s (@SINGLETONS) {
+	if (exists $scripts{$s}) {
+	    return [{ name => lc ($s), score => 1 }];
+	}
     }
 	
-    if ( exists $scripts{'Superfreak Latin'} ) {
+    if (exists $scripts{'Superfreak Latin'}) {
 	return [{ name => 'vietnamese', score => 1 }];
     }
 	
-    if ( exists $scripts{'Exotic Latin'} ) {
-	return $self->check( $sample, @EXOTIC_LATIN );
+    if (exists $scripts{'Exotic Latin'}) {
+	return $self->check ($sample, @EXOTIC_LATIN);
     }	
 	
-    if ( exists $scripts{'Accented Latin'} ) {
-	return $self->check( $sample, @ACCENTED_LATIN );
+    if (exists $scripts{'Accented Latin'}) {
+	return $self->check ($sample, @ACCENTED_LATIN);
     }
 	
 	
-    if ( exists $scripts{'Basic Latin'} ) {
-	return $self->check( $sample, @ALL_LATIN );
+    if (exists $scripts{'Basic Latin'}) {
+	return $self->check ($sample, @ALL_LATIN);
     }	
 	
-    return [{ name =>  "unknown script: '".(join ", ", keys %scripts)."'", score => 1}];
+    return [{ name =>  "unknown script: '". (join ", ", keys %scripts)."'", score => 1}];
 	
 }
 
 
 sub check 
 {
-    my ( $self, $sample, @langs )  = @_;
-    #return join ' ', @langs
-    #warn "Checking sample $sample", "\n";
-    #my $num_tri = length( $sample ) / 3;
-	
-    my $mod = __make_model( $sample );
-    my $num_tri = scalar keys %{$mod};
+    my ($self, $sample, @langs)  = @_;
+    my $mod = __make_model ($sample);
+    my $num_tri = scalar keys %$mod;
     my %scores;
-    foreach my $key ( @langs ) {
-	my $l = lc( $key );
-	#warn "Checking $l\n";
-	next unless exists $self->{models}{$l};
-	my $score = __distance( $mod, $self->{models}{$l} );
+    for my $key (@langs) {
+	my $l = lc ($key);
+	unless (exists $self->{models}{$l}) {
+	    next;
+	}
+	my $score = __distance ($mod, $self->{models}{$l});
 	$scores{$l} = $score;
     }
     my @sorted = sort { $scores{$a} <=> $scores{$b} } keys %scores;
     my @out;
     $num_tri ||=1;
-    foreach my $s ( @sorted ) {
+    for my $s (@sorted) {
 	my $norm = $scores{$s}/$num_tri;
-	push @out, { name => $s , score => int($norm) };
+	push @out, { name => $s , score => int ($norm) };
     }
-    return [splice ( @out, 0, 4 )];
+    return [splice (@out, 0, 4)];
 	
-    if ( @sorted ) {
-	return splice ( @sorted, 0, 4 );
+    if (@sorted) {
+	return splice (@sorted, 0, 4);
 	my @all;
 	my $firstscore = $scores{$sorted[0]};
-	while ( my $next = shift @sorted ) {
-	    last unless $scores{$next} == $firstscore;
+	while (my $next = shift @sorted) {
+	    unless ($scores{$next} == $firstscore) {
+	        last;
+	    }
 	    push @all, $next;
 	}
-	return join ',', @all;
+	return join ', ', @all;
     }
-    return { name => 'unknown'. ( join ' ', @langs), score =>1 };
+    return { name => 'unknown'. (join ' ', @langs), score => 1 };
 }
 
 
 sub __distance 
 {
-    my ( $m1, $m2 ) = @_;
+    my ($m1, $m2) = @_;
     my $dist =0;
-    foreach my $k ( keys %{$m1} ) {
-	$dist += 
-	( exists $m2->{$k} ?
-	  abs( $m2->{$k} - $m1->{$k} ) :
-	  $MAX 
-      );
+    for my $k (keys %$m1) {
+	$dist += (exists $m2->{$k} ? abs($m2->{$k} - $m1->{$k}) : $MAX);
     }
     return $dist;
 }
@@ -323,62 +339,26 @@ sub __distance
 
 sub __make_model 
 {
-    my ( $content ) = @_;
-    #use bytes;
+    my ($content) = @_;
     my %trigrams;
-
-
-    $content = NFC($content);	# normal form C
+    $content = NFC ($content);	# normal form C
     $content =~ s/[^[:alpha:]']/ /g;
-    for ( my $i = 0; $i < length( $content ) - 2; $i++ ) {
-	my $tri = lc(substr( $content, $i, 3 ));
+    for (my $i = 0; $i < length ($content) - 2; $i++) {
+	my $tri = lc (substr ($content, $i, 3));
 	$trigrams{$tri}++;
     }
 	
-    # TO DO should use Unicode::Collate here instead of
-    # cmp
     my @sorted = sort { $trigrams{$b} == $trigrams{$a} ?
 			$a cmp $b :
 			$trigrams{$b} <=> $trigrams{$a} }
-    grep { !/\s\s/o } 
-    keys %trigrams;
-    my @trimmed = splice (  @sorted, 0, 300 );
-    #warn join " ", @trimmed, "\n";
+        grep { !/\s\s/o } keys %trigrams;
+    my @trimmed = splice (@sorted, 0, 300);
     my $counter = 0;
     my %res;
-    foreach my $t ( @trimmed ) {
+    for my $t (@trimmed) {
 	$res{$t} = $counter++;
     }
     return \%res;
-}
-
-
-sub train 
-{
-    my ( $self ) =  @_;
-    my $modeldir = $self->{modeldir};
-    opendir my $dh, $modeldir or die "Failed to open directory: $!";
-    while ( my $file = readdir $dh ) {
-	next if $file =~ /^\./;
-	next if $file =~ /\.train$/;
-#	warn "Training on $file\n";
-	my ( $name ) = $file;
-	my $trained_file = catfile( $modeldir, "$name.train");
-	next if -f $trained_file;
-	my $path = catfile( $modeldir, $file );
-
-	open my $fh, "<:encoding(utf8)", $path or croak "Failed to open $path for reading: $!";
-	local $/;
-	my $content = <$fh>;
-	my $model = __make_model( $content );
-	warn "Created model for $name\n";
-	open my $oh, ">:encoding(utf8)", $trained_file 
-	or croak "Unable to open training file for writing";
-	foreach my $k ( sort {$model->{$a} <=> $model->{$b} } keys %$model ) {
-	    print $oh $k, "\t\t\t", $model->{$k}, "\n";
-	}
-	close $oh or croak "Unable to close training file: $!";
-    }
 }
 
 1;

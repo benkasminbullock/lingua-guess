@@ -19,7 +19,12 @@ WriteMakefile(
             repository => $repo,
             bugtracker => "$repo/issues",
         },
+	x_contributors => [
+	    'Ben Bullock <bkb@cpan.org>',
+	    'Maciej Ceglowski <mceglows@cpan.org>',
+	],
     },
     MIN_PERL_VERSION => '5.008009',
     AUTHOR => 'Ben Bullock <bkb@cpan.org>',
+    EXE_FILES => ['script/linguaguess',],
 );
