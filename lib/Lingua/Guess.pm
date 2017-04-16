@@ -84,7 +84,7 @@ sub load_models
 	next unless $f =~ /\.train$/;
 	my ( $name ) = $f =~ m|(.*)\.|;
 	my $path = catfile( $self->{modeldir}, $f );
-	open my $fh, "<:utf8", $path or die "Failed to open file: $!";
+	open my $fh, "<:encoding(utf8)", $path or die "Failed to open file: $!";
 	my %model;
 	while ( my $line = <$fh> ) {
 	    chomp $line;
@@ -372,7 +372,7 @@ sub train
 	my $content = <$fh>;
 	my $model = __make_model( $content );
 	warn "Created model for $name\n";
-	open my $oh, ">:utf8", $trained_file 
+	open my $oh, ">:encoding(utf8)", $trained_file 
 	or croak "Unable to open training file for writing";
 	foreach my $k ( sort {$model->{$a} <=> $model->{$b} } keys %$model ) {
 	    print $oh $k, "\t\t\t", $model->{$k}, "\n";
