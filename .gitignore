@@ -2,3 +2,6 @@
 lib/Lingua/Guess.pod
 #
 MANIFEST
+Makefile
+README
+Lingua-Guess-[0-9]*

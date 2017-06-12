@@ -7,7 +7,7 @@ produces output
 
 [% INCLUDE $out | xtidy %]
 
-(This example is included as L<F<[% pl %]>|https://api.metacpan.org/source/BKB/[% info.name %]-[% info.version %]/examples/[% pl %]> in the distribution.)
+(This example is included as L<F<[% pl %]>|https://fastapi.metacpan.org/source/BKB/[% info.name %]-[% info.version %]/examples/[% pl %]> in the distribution.)
 [% END %]
 =encoding UTF-8
 
@@ -29,6 +29,8 @@ was deleted from CPAN by its author.
 
 =head2 new
 
+    my $lg = Lingua::Guess->new ();
+
 Make a new object. This takes a hash as argument with the following keys:
 
 =over
@@ -47,9 +49,11 @@ This method returns arrayref of hashes in the form
     [{name => NAME, score => SCORE}]
 
 where C<score> represents the likelihood of the language given by
-C<name> as an integer.
+C<name> as a fractional probability.
 
 =head2 simple_guess
+
+    my $name = simple_guess ($text);
 
 This method returns a one-word string containing the English name of
 the guessed language.
@@ -108,10 +112,6 @@ text there may be.
 
 The guessed language is returned as a lower-case English name of the
 language rather than an ISO language code.
-
-=item
-
-The scores should be fractional probabilities.
 
 =back
 
