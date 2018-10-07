@@ -61,7 +61,6 @@ sub guess
         $self->load_models ();
     }
     my @runs = find_runs($string);
-    my @langs;
     my %scripts;
     for my $run (@runs) {
 	$scripts{$run->[1]}++;
