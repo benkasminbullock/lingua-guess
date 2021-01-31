@@ -13,7 +13,7 @@ produces output
 
 =head1 NAME
 
-Lingua::Guess - A statistical language guesser
+Lingua::Guess - Guess the language of text
 
 =head1 SYNOPSIS
 
@@ -44,12 +44,13 @@ training data supplied with the module is used.
 
 =head2 guess
 
-This method returns arrayref of hashes in the form 
+This method returns an arrayref of hashes in the form 
 
-    [{name => NAME, score => SCORE}]
+    [{name => NAME, score => SCORE, code2 => 'en', code3 => 'eng'}]
 
 where C<score> represents the likelihood of the language given by
-C<name> as a fractional probability.
+C<name> as a fractional probability, and C<code2> and C<code3> are the
+ISO language codes of the language.
 
 =head2 simple_guess
 
@@ -90,6 +91,8 @@ L<Unicode::UCD/charinfo> is used to get information about characters
 
 =item L<Language::Guess|http://cpan.metacpan.org/authors/id/M/MC/MCEGLOWS/> at backpan.perl.org
 
+This is the module which Lingua::Guess was forked from.
+
 =back
 
 =head1 BUGS
@@ -107,11 +110,6 @@ for example, if you give it a Wikipedia page to guess the language, it
 will seize upon the text in the interlanguage link and instantly
 proclaim it to be in Korean or Japanese, regardless of how much other
 text there may be.
-
-=item
-
-The guessed language is returned as a lower-case English name of the
-language rather than an ISO language code.
 
 =back
 
@@ -174,6 +172,7 @@ this fork, but simply renamed it.
 =head1 COPYRIGHT
 	
 (c) 2004 National Institute for Technology and Liberal Education
+(c) 2017-2021 Ben Bullock
 
 =head1 LICENSE
 
