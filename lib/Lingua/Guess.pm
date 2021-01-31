@@ -9,7 +9,7 @@ use Unicode::Normalize qw/NFC/;
 use Unicode::UCD 'charinfo';
 use JSON::Parse 'read_json';
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 # Maximum distance, used by __distance.
 
